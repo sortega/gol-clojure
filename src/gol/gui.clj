@@ -1,51 +1,10 @@
 (ns gol.gui
   (:use [gol.model])
+  (:use [gol.grid])
   (:use [seesaw.core])
   (:use [seesaw.color])
   (:use [seesaw.graphics])
   (:use [seesaw.dev]))
-
-(def min-radius 10)
-(def max-cell-size 10)
-
-(defn grid-ranges [world-ranges]
-  (letfn [(grid-range [[from to]]
-            [(min from (- min-radius))
-             (max to min-radius)])]
-    (map grid-range world-ranges)))
-
-(defn world-ranges [cells]
-  (let [rows (map first cells),
-        cols (map second cells),
-        get-range #(vector (apply min %)
-                           (apply max %))]
-    (if (empty? cells)
-      [[0 0] [0 0]]
-      [(get-range rows) (get-range cols)])))
-
-(defn range-size [[from to]]
-  (inc (- to from)))
-
-(defprotocol Grid
-  (cellSize [this])
-  (cellPos [this row col])
-  (cellOn [this x y]))
-
-(defn grid [w h ranges]
-  ; TODO: consider centering when extra space
-  (let [[[r1 _] [c1 _]] ranges,
-        [rows cols] (map range-size ranges),
-        cell-size (min (/ h rows) (/ w cols))]
-    (reify Grid
-      (cellSize [this] cell-size)
-      (cellPos [this row col]
-        [(* (- col c1) cell-size)
-         (* (- row r1) cell-size)
-         cell-size
-         cell-size])
-      (cellOn [this x y]
-        [(+ (quot y cell-size) r1)
-         (+ (quot x cell-size) c1)]))))
 
 (def cell-style (style :foreground "#000"
                        :background "#000"
@@ -74,7 +33,7 @@
               :listen [:mouse-clicked click-cell])))
 
 (defn mainframe []
-  (let [worldref (atom #{[-1 0] [0 0] [1 0] [2 2] [-10 -10] [10 10]})
+  (let [worldref (atom #{[-1 0] [0 0] [1 0] [1 1] [0 2] [-10 -10] [10 10]})
         world-widget (world-widget worldref)
         step     (fn [e]
                     (swap! worldref next-gen)
