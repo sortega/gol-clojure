@@ -27,14 +27,18 @@
 (defn -main []
   (native!)
   (let [f (mainframe),
-        worldref (atom #{[-1 0] [0 0] [1 0] [1 1] [0 2] [-10 -10] [10 10]})]
+        world-ref (atom #{[-1 0] [0 0] [1 0] [1 1] [0 2] [-10 -10] [10 10]}),
+        timer-fn-ref (atom nil)
+        timer (timer (fn [e] (@timer-fn-ref e))
+                     :delay 1000
+                     :start? false)]
     (letfn [
       (step [e]
-        (swap! worldref next-gen)
+        (swap! world-ref next-gen)
         (repaint! (select f [:#canvas])))
 
       (paint-world [c g]
-        (let [world @worldref,
+        (let [world @world-ref,
               [[r1 r2] [c1 c2] :as ranges] (-> world world-ranges grid-ranges),
               gr (grid (.getWidth c) (.getHeight c) ranges)]
           (doseq [row (range r1 (inc r2)),
@@ -44,12 +48,34 @@
 
       (click-cell [e]
         (let [c (.getSource e),
-              world @worldref,
+              world @world-ref,
               ranges (-> world world-ranges grid-ranges),
               gr (grid (.getWidth c) (.getHeight c) ranges)]
-          (swap! worldref toggle-cell (cellOn gr (.getX e) (.getY e)))
+          (swap! world-ref toggle-cell (cellOn gr (.getX e) (.getY e)))
           (repaint! c)))
 
+      (toggle-run [e]
+        (swap! timer-fn-ref
+          (fn [fn]
+            (let [run-btn (select f [:#run])
+                  step-btn (select f [:#step])]
+              (if (nil? fn)
+                (do ; run
+                  (config! run-btn :text "stop")
+                  (config! step-btn :enabled? false)
+                  (.start timer)
+                  step)
+                (do ; stop
+                  (config! run-btn :text "run")
+                  (config! step-btn :enabled? true)
+                  (.stop timer)
+                  nil
+                  )
+              )))))
+
     ] (config! (select f [:#canvas]) :paint paint-world)
+      (listen (select f [:#canvas]) :mouse-clicked click-cell)
       (listen (select f [:#step]) :action step)
-      (show! f))))
+      (listen (select f [:#run]) :action toggle-run)
+      (show! f)
+      nil)))
