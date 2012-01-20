@@ -8,58 +8,66 @@
 (def min-radius 10)
 (def max-cell-size 10)
 
+(defn grid-ranges [world-ranges]
+  (letfn [(grid-range [[from to]]
+            [(min from (- min-radius))
+             (max to min-radius)])]
+    (map grid-range world-ranges)))
+
 (defn world-ranges [cells]
   (let [rows (map first cells),
         cols (map second cells),
-        get-range #(vector (apply min (- min-radius) %)
-                           (apply max    min-radius  %))]
-    [(get-range rows)
-     (get-range cols)]))
+        get-range #(vector (apply min %)
+                           (apply max %))]
+    (if (empty? cells)
+      [[0 0] [0 0]]
+      [(get-range rows) (get-range cols)])))
 
+(defn range-size [[from to]]
+  (inc (- to from)))
 
-(defn cell-size [space cells]
-  (min max-cell-size (/ space cells)))
+(defprotocol Grid
+  (cellSize [this])
+  (cellPos [this row col])
+  (cellOn [this x y]))
+
+(defn grid [w h ranges]
+  ; TODO: consider centering when extra space
+  (let [[[r1 _] [c1 _]] ranges,
+        [rows cols] (map range-size ranges),
+        cell-size (min (/ h rows) (/ w cols))]
+    (reify Grid
+      (cellSize [this] cell-size)
+      (cellPos [this row col]
+        [(* (- col c1) cell-size)
+         (* (- row r1) cell-size)
+         cell-size
+         cell-size])
+      (cellOn [this x y]
+        [(+ (quot y cell-size) r1)
+         (+ (quot x cell-size) c1)]))))
 
 (def cell-style (style :foreground "#000"
                        :background "#000"
                        :stroke (stroke :width 0)))
 
-(defn index-of [cell-size space pos]
-  (quot
-    (+ pos
-       (- (/ space 2))
-       (/ cell-size 2))
-    cell-size))
-
 (defn world-widget [worldref]
   (letfn [
     (paint-world [c g]
       (let [world @worldref,
-            w (.getWidth c),
-            h (.getHeight c),
-            [[r1 r2] [c1 c2]] (world-ranges world),
-            cell-size (min (cell-size h (inc (- r2 r1)))
-                           (cell-size w (inc (- c2 c1))))]
-
-        (translate g (/ w 2) (/ h 2))
-        (scale g cell-size)
-        (translate g -0.5 -0.5)
+            [[r1 r2] [c1 c2] :as ranges] (-> world world-ranges grid-ranges),
+            gr (grid (.getWidth c) (.getHeight c) ranges)]
         (doseq [row (range r1 (inc r2)),
                 col (range c1 (inc c2))
                 :when (contains? world [row col])]
-          (draw g (rect row col 1) cell-style))))
+          (draw g (apply rect (cellPos gr row col)) cell-style))))
 
     (click-cell [e]
-      (let [x (.getX e),
-            y (.getY e),
-            c (.getSource e),
-            w (.getWidth c),
-            h (.getHeight c),
-            [[r1 r2] [c1 c2]] (world-ranges @worldref),
-            cell-size (min (cell-size h (inc (- r2 r1)))
-                           (cell-size w (inc (- c2 c1))))]
-        (swap! worldref toggle-cell [(index-of cell-size h x)
-                                     (index-of cell-size w y)])
+      (let [c (.getSource e),
+            world @worldref,
+            ranges (-> world world-ranges grid-ranges),
+            gr (grid (.getWidth c) (.getHeight c) ranges)]
+        (swap! worldref toggle-cell (cellOn gr (.getX e) (.getY e)))
         (repaint! c)))
     ] (canvas :background "#FFF"
               :paint paint-world
