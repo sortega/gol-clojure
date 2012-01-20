@@ -19,3 +19,8 @@
 
 (defn gen-seq [world]
   (iterate next-gen world))
+
+(defn toggle-cell [world cell]
+  (if (contains? world cell)
+    (disj world cell)
+    (conj world cell)))

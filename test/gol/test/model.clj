@@ -16,3 +16,7 @@
 (deftest gen-seq-test
   (is (= #{[0 0] [1 0] [-1 0]}
         (nth (gen-seq #{[0 0] [0 1] [0 -1]}) 201))))
+
+(deftest toggle-test
+  (is (= #{} (toggle-cell #{[0 0]} [0 0])))
+  (is (= #{[0 0]} (toggle-cell #{} [0 0]))))
