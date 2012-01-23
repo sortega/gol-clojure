@@ -1,14 +1,15 @@
+;; # Game of life simulator #
+;;
+;; The following listing shows how to simulate and present as a Swing
+;; application the game of life.
 (ns gol.grid)
 
-(def min-radius 10)
+;; ## Grid coordinates translation ##
+;;
 
-(defn grid-ranges [world-ranges]
-  (letfn [(grid-range [[from to]]
-            [(min from (- min-radius))
-             (max to min-radius)])]
-    (map grid-range world-ranges)))
-
-(defn world-ranges [cells]
+(defn world-ranges
+  "Extract rows and cols ranges of a given world (cell set)."
+  [cells]
   (let [rows (map first cells),
         cols (map second cells),
         get-range #(vector (apply min %)
@@ -17,15 +18,28 @@
       [[0 0] [0 0]]
       [(get-range rows) (get-range cols)])))
 
-(defn range-size [[from to]]
+;; Show 21 x 21 cells at least (a radius of 10 cells).
+(def min-radius 10)
+(defn grid-ranges [world-ranges]
+  (letfn [(grid-range [[from to]]
+            [(min from (- min-radius))
+             (max to min-radius)])]
+    (map grid-range world-ranges)))
+
+(defn range-size
+  "Length of a [from to] range."
+  [[from to]]
   (inc (- to from)))
 
 (defprotocol Grid
-  (cellSize [this])
-  (cellPos [this row col])
-  (cellOn [this x y]))
+  (cellSize [this] "Cell side in pixels")
+  (cellPos [this row col] "Cell top-left corner, width and height")
+  (cellOn [this x y] "Cell on a given pixel coordinates"))
 
-(defn grid [w h ranges]
+;; Allows decoupling coordinate transformation from GUI code.
+(defn grid
+  "Define a grid given some pixel dimensions and a range of cells to contain."
+  [w h ranges]
   ; TODO: consider centering when extra space
   (let [[[r1 _] [c1 _]] ranges,
         [rows cols] (map range-size ranges),
