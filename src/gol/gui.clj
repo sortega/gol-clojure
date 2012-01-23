@@ -11,9 +11,9 @@
   []
   (let [world-widget (canvas :id :canvas
                              :background "#FFF")
-        run-btn  (button :text "run" :id :run)
         step-btn (button :text "step" :id :step)
-        controls (horizontal-panel :items [run-btn step-btn])]
+        run-btn  (button :text "run" :id :run)
+        controls (horizontal-panel :items [step-btn run-btn])]
     (frame :title "Game of life simulator"
       :content (border-panel :center world-widget
                  :south controls)
@@ -27,10 +27,10 @@
 (defn -main []
   (native!)
   (let [f (mainframe),
-        world-ref (atom #{[-1 0] [0 0] [1 0] [1 1] [0 2] [-10 -10] [10 10]}),
+        world-ref (atom #{[-1 0] [0 0] [1 0] [1 1] [0 2]}),
         timer-fn-ref (atom nil)
         timer (timer (fn [e] (@timer-fn-ref e))
-                     :delay 1000
+                     :delay 250
                      :start? false)]
     (letfn [
       (step [e]
